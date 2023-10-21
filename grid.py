@@ -12,7 +12,7 @@ class Microgrid(Env):
         self.action_space = Box(low=np.array([0, 0]), high=np.array([1, 1]))
         self.observation_space = Box(low=np.array([0, 0, -1, 0, 0]), high=np.array([1, 1, 10, 2, 1]))
         self.state = np.array([0, 0.2, 1, 0, 0])
-        self.sim_length = 2880
+        self.sim_length = 288*5
         self.day_length = 288
 
         # temp hardcoded values
@@ -28,11 +28,17 @@ class Microgrid(Env):
         self.hydro_prod = 100
         self.hydro_penalty = 10
         self.hydro_amount = 1000
+        self.verbose = False
         
     def step(self, action: tuple[float, float]) -> tuple[Any, SupportsFloat, bool, bool, dict[str, Any]]:
         power_price = self.power_price[self.ts_start + self.timestep]
         solar_power = self.solar_power[self.ts_start + self.timestep]
 
+        if self.verbose:
+            print(*self.state, ' ', *action)
+
+        action[0] = min(action[0], 1)
+        action[1] = min(max(action[1], -1), 1)
         # don't procude hydro after quota is reached
         action[0] = min(action[0], (1 - self.state[4]) * self.hydro_amount / self.hydro_prod / self.dt)
         batt_pwr = action[1] * 2 - 1

@@ -74,13 +74,17 @@ class MLAgent(Agent):
         row = self.history.iloc[current_ts_global]
         current_time, current_price = row.name, row.MW
         pred = self.price_model.predict(current_time, current_price, ts_left)
-        pred = np.squeeze(pred)
-        max_price1 = np.sort(pred)[min(ts_to_buy, ts_left-1)] 
-        max_price2 = np.sort(self.history[current_ts_global:current_ts_global+ts_left])[min(ts_to_buy, ts_left-1)] # the real price, to compare
+        # pred = self.history.iloc[current_ts_global:current_ts_global+ts_left].MW.values
+        buy_price = np.sort(pred)[min(ts_to_buy, ts_left-1)] 
+        top_price = np.quantile(pred, 0.5)
         action = np.array([0, 0])
-        if max_price1 >= current_price or ts_left <= ts_to_buy:
+        if (buy_price >= current_price) or (ts_left <= ts_to_buy) or (current_price < 0):
             action[0] = 1
+        if ts_left > 20:
+            if current_price > np.quantile(pred, 0.6):
+                action[1] = -1
+            if current_price < np.quantile(pred, 0.4):
+                action[1] = 1
         if current_price < 0:
             action[1] = 1
-        # print(max_price1, max_price2, price, current_price, action, hydro, '_', ts_to_buy, ts_left)
         return action
