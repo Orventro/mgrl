@@ -56,7 +56,6 @@ class MLAgent(Agent):
     
     def load_history(self, history):
         self.history = history.copy()
-        # self.price_model.fit(self.history, "20220601")
     
     def reset(self, info: dict):
         self.ts_start = info['ts_start']
@@ -74,17 +73,9 @@ class MLAgent(Agent):
         row = self.history.iloc[current_ts_global]
         current_time, current_price = row.name, row.MW
         pred = self.price_model.predict(current_time, current_price, ts_left)
-        # pred = self.history.iloc[current_ts_global:current_ts_global+ts_left].MW.values
-        buy_price = np.sort(pred)[min(ts_to_buy, ts_left-1)] 
-        top_price = np.quantile(pred, 0.5)
-        action = np.array([0, 0])
-        if (buy_price >= current_price) or (ts_left <= ts_to_buy) or (current_price < 0):
+        action = np.array([0, 0], dtype=float)
+        q = (pred >= current_price).mean()
+        if (current_price <= np.sort(pred)[min(ts_to_buy, len(pred)-1)]) or (ts_left <= ts_to_buy) or (current_price <= 0):
             action[0] = 1
-        if ts_left > 20:
-            if current_price > np.quantile(pred, 0.6):
-                action[1] = -1
-            if current_price < np.quantile(pred, 0.4):
-                action[1] = 1
-        if current_price < 0:
-            action[1] = 1
+        action[1] = q * 2 - 1
         return action
